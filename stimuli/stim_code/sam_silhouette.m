@@ -1,17 +1,12 @@
-function masks = sam_silhouette(img_paths, n_foreground, n_background, save_folder)
-%   Function that takes an image and outputs a mask using the Segment
-%   Anything Model (SAM)
-
+function masks = sam_silhouette(img_paths, save_folder)
+%   Function that takes an image and outputs a mask using the Segment Anything Model (SAM)
+%
 %   Required Toolboxes: Deep Learning, Computer Vision, Image
 %   Processing for Segment Anything Model
 
 %   Required Inputs:
 %           img_paths = cell array of img paths to silhouette
 %   Optional Inputs:
-%           n_foreground = Number of foreground points to feed SAM
-%           (default = 1)
-%           n_background = Number of background points to feed SAM
-%           (default = 0)
 %           save_folder = Path to write silhouette image to
 %           (default behaviour - does not save anything)
 
@@ -19,23 +14,34 @@ function masks = sam_silhouette(img_paths, n_foreground, n_background, save_fold
 
 
 if ~exist("save_folder", "var"), save_folder = "no"; end
-if ~exist("n_foreground", "var"),  n_foreground = 1; end
-if ~exist("n_background", "var"), n_background = 0; end
+
 
 disp("Loading SAM ...");
 sam_model = segmentAnythingModel;
+start_ind = input("Start index: ");
 
 disp("Getting Embeddings ...");
-for i=1:length(img_paths)
+for i=start_ind:length(img_paths)
     img_path = img_paths{i};
     img = imread(img_path);
     image_embeds = extractEmbeddings(sam_model, img);
     
     % Image masking loop (REQUIRES USER INPUT)
     while true
-        fg_pts = readPoints(img, n_foreground, "foreground");
-        close all;
         
+        close all;
+
+        imshow(img);
+        points_resp = input("Input number of points? [y/n] ", "s");
+        if strcmpi(points_resp, "y")
+            n_foreground = input("Enter number of foreground points: ");
+            n_background = input("Enter number of background points: ");
+        else 
+            n_foreground = 1;
+            n_background = 0;
+        end
+
+        fg_pts = readPoints(img, n_foreground, "foreground");
         bg_pts = [];
         if n_background > 0
             bg_pts = readPoints(img, n_background, "background");
@@ -44,7 +50,19 @@ for i=1:length(img_paths)
         
         disp("Generating Masks ...")
         masks = segmentObjectsFromEmbeddings(sam_model, image_embeds, size(img), ForegroundPoints=fg_pts', BackgroundPoints=bg_pts');
+        im_mask = img.*uint8(masks);        
+        
+        figure
+        tiledlayout(1,2)
+
+        nexttile
         imshow(masks)
+        title("Silhouette")
+
+        nexttile
+        imshow(im_mask)
+        title("Isolated")
+
         
         redo_resp = input("Redo mask? [y/n]", "s");
         
@@ -53,31 +71,33 @@ for i=1:length(img_paths)
             break;
         end
         
-        points_resp = input("Change number of points? [y/n] ", "s");
         
-        if strcmpi(points_resp, "y")
-            n_foreground = input("Enter number of foreground points: ");
-            n_background = input("Enter number of background points: ");
-        end
+        
         close all;
         
         
     end
     
-    points_resp = input("Change number of points? [y/n] ", "s");
-    
-    if strcmpi(points_resp, "y")
-        n_foreground = input("Enter number of foreground points: ");
-        n_background = input("Enter number of background points: ");
-    end
     
     if ~strcmp(save_folder, "no")
         save_name = strsplit(img_path, '/');
         save_name = save_name{end};
-        save_path = [save_folder 'sil_' save_name];
-        disp(["Saving to ", save_path]);
-        imwrite(masks, save_path)
+        sil_save_path = [save_folder '/sil/' 'sil_' save_name ];
+        iso_save_path = [save_folder '/iso/' 'iso_' save_name ];
+        disp("Saving ...");
+        imwrite(masks, sil_save_path);
+        imwrite(im_mask, iso_save_path)
     end
+
+    disp(strcat("Image ", num2str(i), "done"));
+    
+    end_resp = input("Would you like to continue? [y/n]", "s");
+
+    if strcmpi(end_resp, "n")
+        disp(strcat("Stopped at image ", num2str(i)));
+        break;
+    end
+
 end
 end
 

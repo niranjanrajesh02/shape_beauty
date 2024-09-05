@@ -1,4 +1,3 @@
-stimuli/natobjectscolor
-stimuli/silhouettes
-stimuli/silhouettes_subset
-stimuli/subset
+segment-anything-2/
+/.vscode
+stimuli/stim_sets
