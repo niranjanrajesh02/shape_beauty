@@ -1,3 +1,5 @@
 segment-anything-2/
 /.vscode
 stimuli/stim_sets
+stimuli/stim_code/clipdrop
+*.env
