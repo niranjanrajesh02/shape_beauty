@@ -22,6 +22,7 @@ save_dir = os.getenv("SAVE_DIR")
 
 image_paths = [f'{img_dir}/{f}' for f in os.listdir(img_dir) if f.endswith('.png')]
 
+
 # load model
 def get_sam_predictor():
     current_wd = os.getcwd()
